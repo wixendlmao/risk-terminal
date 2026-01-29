@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Risk Terminali</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0e1111; color: #e0e0e0; display: flex; justify-content: center; padding: 20px; }
+        .container { background: #1a1a1a; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 450px; border: 1px solid #333; }
+        h2 { color: #f3ba2f; text-align: center; margin-bottom: 25px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 8px; background: #f3ba2f; color: #000; font-weight: bold; font-size: 1em; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: #ffd700; transform: translateY(-2px); }
+        #result { margin-top: 25px; padding: 20px; border-radius: 8px; background: #252525; display: none; border-left: 5px solid #f3ba2f; }
+        .warning { color: #ff4d4d; font-weight: bold; margin-top: 10px; font-size: 0.9em; }
+        .success { color: #00ff7f; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Crypto Risk Terminali</h2>
+    
+    <div class="input-group">
+        <label>Bakiye (USDT)</label>
+        <input type="number" id="balance" placeholder="Örn: 1000">
+    </div>
+
+    <div class="input-group">
+        <label>Risk Oranı (%)</label>
+        <input type="number" id="risk" placeholder="Örn: 3">
+    </div>
+
+    <div class="input-group">
+        <label>İşlem Yönü</label>
+        <select id="type">
+            <option value="long">Long (Yükseliş)</option>
+            <option value="short">Short (Düşüş)</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Giriş Fiyatı</label>
+        <input type="number" id="entry" step="any" placeholder="0.0000">
+    </div>
+
+    <div class="input-group">
+        <label>Stop-Loss Fiyatı</label>
+        <input type="number" id="stop" step="any" placeholder="0.0000">
+    </div>
+
+    <div class="input-group">
+        <label>Kâr Al (TP) Fiyatı</label>
+        <input type="number" id="tp" step="any" placeholder="0.0000">
+    </div>
+
+    <button onclick="calculate()">HESAPLA</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    function calculate() {
+        const balance = parseFloat(document.getElementById('balance').value);
+        const risk = parseFloat(document.getElementById('risk').value);
+        const type = document.getElementById('type').value;
+        const entry = parseFloat(document.getElementById('entry').value);
+        const stop = parseFloat(document.getElementById('stop').value);
+        const tp = parseFloat(document.getElementById('tp').value);
+
+        if (!balance || !entry || !stop) {
+            alert("Lütfen gerekli alanları doldurun!");
+            return;
+        }
+
+        const priceDiff = Math.abs(entry - stop) / entry;
+        let lev = Math.floor(risk / (priceDiff * 100));
+        lev = lev > 0 ? (lev > 50 ? 50 : lev) : 1;
+        
+        const liqPrice = type === 'long' ? entry * (1 - (1 / lev)) : entry * (1 + (1 / lev));
+        const rrRatio = (Math.abs(tp - entry) / Math.abs(entry - stop)).toFixed(2);
+        
+        const lossAmount = (balance * risk / 100).toFixed(2);
+        const profitAmount = (lossAmount * rrRatio).toFixed(2);
+
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        
+        let warningHtml = "";
+        if ((type === 'long' && stop <= liqPrice) || (type === 'short' && stop >= liqPrice)) {
+            warningHtml = `<p class="warning">⚠️ DİKKAT: Stop fiyatın likidasyonun ötesinde!</p>`;
+        }
+
+        resultDiv.innerHTML = `
+            <p><b>Önerilen Kaldıraç:</b> <span class="success">${lev}x</span></p>
+            <p><b>Likidasyon Fiyatı:</b> ${liqPrice.toFixed(4)}</p>
+            <p><b>Risk/Ödül Oranı:</b> ${rrRatio}</p>
+            <hr style="border:0; border-top:1px solid #444">
+            <p>📉 Stop Olursan: <b>-$${lossAmount}</b></p>
+            <p>📈 Hedefe Giderse: <b class="success">+$${profitAmount}</b></p>
+            ${warningHtml}
+        `;
+    }
+</script>
+
+</body>
+</html>
